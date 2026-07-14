@@ -1,0 +1,355 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum RestaurantApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+enum RoleName {
+  CUSTOMER
+  OWNER
+  ADMIN
+}
+
+//////////////////////////////////////////////////////
+// ROLE
+//////////////////////////////////////////////////////
+
+model Role {
+  id        String   @id @default(cuid())
+  role      RoleName @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRoles UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+//////////////////////////////////////////////////////
+// USER
+//////////////////////////////////////////////////////
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String
+  phone      String?
+  address    String?
+  isBlocked  Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  userRoles  UserRole[]
+
+  restaurants Restaurant[]
+
+  orders     Order[]
+  reviews    Review[]
+  cart        Cart?
+
+  @@index([email])
+}
+
+//////////////////////////////////////////////////////
+// RESTAURANT
+//////////////////////////////////////////////////////
+
+model Restaurant {
+  id          String @id @default(cuid())
+
+  userId      String
+  owner       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  logoUrl     String?
+  address     String
+
+  deliveryFee Decimal @db.Decimal(10,2)
+  minimumOrder Decimal @db.Decimal(10,2)
+
+  applicationStatus RestaurantApplicationStatus @default(PENDING)
+  rejectionReason String?
+
+  isOpen Boolean @default(true)
+
+  openTime DateTime @db.Time
+  closeTime DateTime @db.Time 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurantCuisines RestaurantCuisine[]
+
+  categories MenuCategory[]
+  menuItems  MenuItem[]
+  orders     Order[]
+  reviews    Review[]
+  carts      Cart[]
+
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////
+// CUISINE
+//////////////////////////////////////////////////////
+
+model Cuisine {
+  id        String @id @default(cuid())
+  name      String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restaurantCuisines RestaurantCuisine[]
+}
+
+model RestaurantCuisine {
+
+  restaurantId String
+  cuisineId    String
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  cuisine    Cuisine @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
+
+  @@id([restaurantId,cuisineId])
+  @@index([cuisineId])
+}
+
+//////////////////////////////////////////////////////
+// CATEGORY
+//////////////////////////////////////////////////////
+
+model MenuCategory {
+
+  id String @id @default(cuid())
+
+  name String
+
+  restId String
+
+  restaurant Restaurant @relation(fields: [restId], references: [id], onDelete: Cascade)
+
+  menuItems MenuItem[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([restId,name])
+}
+
+//////////////////////////////////////////////////////
+// MENU ITEM
+//////////////////////////////////////////////////////
+
+model MenuItem {
+
+  id String @id @default(cuid())
+
+  restId String
+  restaurant Restaurant @relation(fields: [restId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category MenuCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  name String
+  description String?
+
+  imageUrl String?
+
+  price Decimal @db.Decimal(10,2)
+
+  isVeg Boolean @default(false)
+
+  isAvailable Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartItems CartItem[]
+  orderItems OrderItem[]
+
+  @@index([restId])
+  @@index([categoryId])
+}
+
+//////////////////////////////////////////////////////
+// CART
+//////////////////////////////////////////////////////
+
+model Cart {
+
+  id String @id @default(cuid())
+
+  customerId String @unique
+  customer User @relation(fields:[customerId],references:[id],onDelete: Cascade)
+
+  restaurantId String
+  restaurant Restaurant @relation(fields:[restaurantId],references:[id],onDelete: Cascade)
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([restaurantId])
+}
+
+model CartItem {
+
+  id String @id @default(cuid())
+
+  cartId String
+  cart Cart @relation(fields:[cartId],references:[id],onDelete: Cascade)
+
+  menuItemId String
+  menuItem MenuItem @relation(fields:[menuItemId],references:[id])
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@unique([cartId,menuItemId])
+  @@index([menuItemId])
+}
+
+//////////////////////////////////////////////////////
+// ORDER
+//////////////////////////////////////////////////////
+
+model Order {
+
+  id String @id @default(cuid())
+
+  customerId String
+  customer User @relation(fields:[customerId],references:[id], onDelete: Restrict)
+
+  restaurantId String
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+
+  subtotal Decimal @db.Decimal(10,2)
+  deliveryFee Decimal @db.Decimal(10,2)
+  total Decimal @db.Decimal(10,2)
+
+  addressSnapshot String
+
+  status OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  review Review?
+
+  @@index([customerId])
+  @@index([restaurantId, status])
+}
+
+//////////////////////////////////////////////////////
+// ORDER ITEM
+//////////////////////////////////////////////////////
+
+model OrderItem {
+
+  id String @id @default(cuid())
+
+  orderId String
+  order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
+
+  menuItemId String?
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  name String
+  price Decimal @db.Decimal(10,2)
+
+  quantity Int
+
+  total Decimal @db.Decimal(10,2)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+//////////////////////////////////////////////////////
+// ORDER STATUS HISTORY
+//////////////////////////////////////////////////////
+
+model OrderStatusHistory {
+
+  id String @id @default(cuid())
+
+  orderId String
+  order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
+
+  status OrderStatus
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+//////////////////////////////////////////////////////
+// REVIEW
+//////////////////////////////////////////////////////
+
+model Review {
+
+  id String @id @default(cuid())
+
+  orderId String @unique
+  order Order @relation(fields:[orderId],references:[id],onDelete: Cascade)
+
+  customerId String
+  customer User @relation(fields:[customerId],references:[id])
+
+  restaurantId String
+  restaurant Restaurant @relation(fields:[restaurantId],references:[id])
+
+  rating Int
+  comment String?
+
+  isHidden Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([restaurantId])
+}

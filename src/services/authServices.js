@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import jwt from "jsonwebtoken";
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 import { AppError } from "../utils/AppError.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+import { hashToken } from "../utils/hashToken.js";
 
 const prisma = new PrismaClient();
 
@@ -38,21 +39,70 @@ export const registerUser = async (username, email, password, phoneNumber, addre
 export const loginUser = async (email, password) => {
     const user = await prisma.user.findUnique({
         where: { email },
-        include: { userRoles: { include: { role: true } } }
+        include: { userRoles: { include: { role: true } } },
     });
-    if (!user) {
-        throw new AppError("Invalid credentials", 401);
-    }
-    if (user.isBlocked){
-        throw new AppError("User is blocked", 403);
-    }
+    if (!user) throw new AppError('Invalid credentials', 401);
+    if (user.isBlocked) throw new AppError('This account has been blocked', 403);
+
     const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) {
-        throw new AppError("Invalid credentials", 401);
-    }
+    if (!isMatch) throw new AppError('Invalid credentials', 401);
+
     const roles = user.userRoles.map((ur) => ur.role.role);
-    const token = jwt.sign({ id: user.id, roles }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    return { token, user: { id: user.id, email: user.email, username: user.username, phoneNumber: user.phoneNumber, address: user.address, roles } };
+    const accessToken = generateAccessToken(user, roles);
+
+    const refreshToken = generateRefreshToken();
+    await prisma.refreshToken.create({
+        data: {
+            tokenHash: hashToken(refreshToken),
+            userId: user.id,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
+        },
+    });
+
+    return {
+        accessToken,
+        refreshToken,
+        user: { id: user.id, email: user.email, username: user.username, phoneNumber: user.phoneNumber, address: user.address, roles },
+    };
+};
+
+export const refreshAccessToken = async (rawToken) => {
+    if (!rawToken) throw new AppError('No refresh token provided', 401);
+
+    const tokenHash = hashToken(rawToken);
+    const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+    if (!stored || stored.revoked || stored.expiresAt < new Date()) {
+        throw new AppError('Invalid or expired refresh token', 401);
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: stored.userId },
+        include: { userRoles: { include: { role: true } } },
+    });
+    if (!user || user.isBlocked) throw new AppError('Invalid or expired refresh token', 401);
+
+    await prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked: true } });
+
+    const roles = user.userRoles.map((ur) => ur.role.role);
+    const newAccessToken = generateAccessToken(user, roles);
+    const newRefreshToken = generateRefreshToken();
+
+    await prisma.refreshToken.create({
+        data: {
+            tokenHash: hashToken(newRefreshToken),
+            userId: user.id,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+    });
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+};
+
+export const logoutUser = async (rawToken) => {
+    if (!rawToken) return;
+    const tokenHash = hashToken(rawToken);
+    await prisma.refreshToken.updateMany({ where: { tokenHash }, data: { revoked: true } });
 };
 
 export const deleteUser = async (userId) => {

@@ -78,6 +78,8 @@ model User {
 
   restaurants Restaurant[]
 
+  refreshtokens RefreshToken[]
+
   orders     Order[]
   reviews    Review[]
   cart        Cart?
@@ -352,4 +354,20 @@ model Review {
 
   @@index([customerId])
   @@index([restaurantId])
+}
+
+//////////////////////////////////////////////////////
+// REFRESH TOKEN
+//////////////////////////////////////////////////////
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

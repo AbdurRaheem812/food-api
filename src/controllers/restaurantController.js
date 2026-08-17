@@ -1,4 +1,4 @@
-import { applyAsRestaurantOwner, uploadRestaurantLogo } from '../services/restaurantServices.js';
+import { applyAsRestaurantOwner, uploadRestaurantLogo, getMyApplicationStatus } from '../services/restaurantServices.js';
 import { createRestaurantSchema } from '../validators/restaurant.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -19,4 +19,9 @@ export const uploadLogoController = asyncHandler(async (req, res) => {
   }
   const restaurant = await uploadRestaurantLogo(req.user.id, req.file.buffer);
   sendSuccess(res, 200, { message: 'Logo uploaded successfully', restaurant });
+});
+
+export const getApplicationStatusController = asyncHandler(async (req, res) => {
+    const restaurant = await getMyApplicationStatus(req.user.id);
+    sendSuccess(res, 200, { restaurant });
 });

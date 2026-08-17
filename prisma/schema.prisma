@@ -64,10 +64,10 @@ model UserRole {
 
 model User {
   id         String   @id @default(cuid())
-  name       String
+  username   String
   email      String   @unique
   password   String
-  phone      String?
+  phoneNumber String?
   address    String?
   isBlocked  Boolean  @default(false)
 

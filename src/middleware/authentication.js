@@ -24,7 +24,7 @@ export const verifyToken = (req, res, next) => {
     };
     next();
   } catch (error) {
-    return sendError(res, 400, 'Invalid token.');
+    return sendError(res, 401, 'Invalid token.');
   }
 };
 

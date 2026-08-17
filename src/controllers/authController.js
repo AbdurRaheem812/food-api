@@ -1,4 +1,4 @@
-import { registerUser, loginUser, deleteUser, refreshAccessToken, logoutUser } from '../services/authServices.js';
+import { registerUser, loginUser, deleteUser, refreshAccessToken, logoutUser, updateProfile, deactivateAccount, deleteAccountPermanently } from '../services/authServices.js';
 import { registerSchema, loginSchema } from '../validators/auth.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -52,4 +52,21 @@ export const deleteUserController = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const result = await deleteUser(id);
     sendSuccess(res, 200, result);
+});
+
+export const updateProfileController = asyncHandler(async (req, res) => {
+  const user = await updateProfile(req.user.id, req.body);
+  sendSuccess(res, 200, { user });
+});
+
+export const deactivateAccountController = asyncHandler(async (req, res) => {
+  const result = await deactivateAccount(req.user.id);
+  res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
+  sendSuccess(res, 200, result);
+});
+
+export const deleteAccountController = asyncHandler(async (req, res) => {
+  const result = await deleteAccountPermanently(req.user.id);
+  res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
+  sendSuccess(res, 200, result);
 });

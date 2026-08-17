@@ -4,6 +4,10 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import restaurantRoutes from './routes/restaurantRoutes.js';
 import menuRoutes from './routes/menuRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';  
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -20,6 +24,11 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api', menuRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api', reviewRoutes); 
+
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

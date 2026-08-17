@@ -6,7 +6,7 @@ import { hashToken } from "../utils/hashToken.js";
 
 const prisma = new PrismaClient();
 
-export const registerUser = async (username, email, password, phoneNumber, address, requestedRole="CUSTOMER" ) => {
+export const registerUser = async (username, email, password, phoneNumber, address, requestedRole = "CUSTOMER") => {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
         throw new AppError("User already exists", 409);
@@ -43,6 +43,7 @@ export const loginUser = async (email, password) => {
     });
     if (!user) throw new AppError('Invalid credentials', 401);
     if (user.isBlocked) throw new AppError('This account has been blocked', 403);
+    if (user.isDeleted) throw new AppError('This account has been deactivated', 403);
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) throw new AppError('Invalid credentials', 401);
@@ -55,7 +56,7 @@ export const loginUser = async (email, password) => {
         data: {
             tokenHash: hashToken(refreshToken),
             userId: user.id,
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
     });
 
@@ -80,7 +81,7 @@ export const refreshAccessToken = async (rawToken) => {
         where: { id: stored.userId },
         include: { userRoles: { include: { role: true } } },
     });
-    if (!user || user.isBlocked) throw new AppError('Invalid or expired refresh token', 401);
+    if (!user || user.isBlocked || user.isDeleted) throw new AppError('Invalid or expired refresh token', 401);
 
     await prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked: true } });
 
@@ -113,3 +114,34 @@ export const deleteUser = async (userId) => {
     await prisma.user.delete({ where: { id: userId } });
     return { message: "User deleted successfully" };
 }
+
+export const updateProfile = async (userId, data) => {
+    const updated = await prisma.user.update({
+        where: { id: userId },
+        data: { username: data.username, phoneNumber: data.phoneNumber, address: data.address },
+        include: { userRoles: { include: { role: true } } },
+    });
+    const roles = updated.userRoles.map((ur) => ur.role.role);
+    return { id: updated.id, email: updated.email, username: updated.username, phoneNumber: updated.phoneNumber, address: updated.address, roles };
+};
+
+export const deactivateAccount = async (userId) => {
+  await prisma.user.update({ where: { id: userId }, data: { isDeleted: true } });
+  await prisma.refreshToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
+  return { message: 'Account deactivated' };
+};
+
+export const deleteAccountPermanently = async (userId) => {
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+    return { message: 'Account permanently deleted' };
+  } catch (err) {
+    if (err.code === 'P2003') {
+      throw new AppError(
+        'This account cannot be permanently deleted because it has order or restaurant history tied to it. Please deactivate instead.',
+        409
+      );
+    }
+    throw err;
+  }
+};

@@ -2,7 +2,7 @@ import { applyAsRestaurantOwner, uploadRestaurantLogo, getMyRestaurants, updateR
 import { createRestaurantSchema, updateRestaurantSchema, listRestaurantsQuerySchema } from '../validators/restaurant.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 export const applyController = asyncHandler(async (req, res) => {
     const parsed = createRestaurantSchema.safeParse(req.body);

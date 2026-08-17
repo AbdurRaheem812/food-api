@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 import { assertRestaurantOwnership } from '../utils/assertOwnership.js';
 import { streamUpload } from '../utils/cloudinaryUpload.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';

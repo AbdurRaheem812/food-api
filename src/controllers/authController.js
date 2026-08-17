@@ -2,7 +2,7 @@ import { registerUser, loginUser, deleteUser, refreshAccessToken, logoutUser, up
 import { registerSchema, loginSchema } from '../validators/auth.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 const REFRESH_COOKIE_OPTIONS = {
     httpOnly: true,

@@ -2,7 +2,7 @@ import { createReview, getRestaurantReviews } from '../services/reviewServices.j
 import { createReviewSchema } from '../validators/review.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 export const createReviewController = asyncHandler(async (req, res) => {
   const parsed = createReviewSchema.safeParse(req.body);

@@ -2,7 +2,7 @@ import { getCart, addItemToCart, updateCartItemQuantity, removeCartItem, clearCa
 import { addToCartSchema, updateCartItemSchema } from '../validators/cart.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 export const getCartController = asyncHandler(async (req, res) => {
   const result = await getCart(req.user.id);

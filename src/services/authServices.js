@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
-import { AppError } from "../utils/AppError.js";
+import { AppError } from "../utils/appError.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { hashToken } from "../utils/hashToken.js";
 

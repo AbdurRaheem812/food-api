@@ -1,7 +1,7 @@
 import * as adminServices from '../services/adminServices.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 import * as z from 'zod';
 
 const decisionSchema = z.object({

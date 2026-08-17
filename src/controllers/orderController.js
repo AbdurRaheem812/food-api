@@ -2,7 +2,7 @@ import { createOrder, getMyOrders, getOrderById, updateOrderStatus, getRestauran
 import { createOrderSchema, updateOrderStatusSchema } from '../validators/order.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 export const createOrderController = asyncHandler(async (req, res) => {
   const parsed = createOrderSchema.safeParse(req.body);

@@ -6,7 +6,7 @@ import {
 import { createCategorySchema, createMenuItemSchema, updateMenuItemSchema } from '../validators/menu.schema.js';
 import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 export const createCategoryController = asyncHandler(async (req, res) => {
   const parsed = createCategorySchema.safeParse(req.body);

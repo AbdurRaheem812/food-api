@@ -1,18 +1,19 @@
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import { sendError } from '../utils/response.js';
 
 dotenv.config();
 
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
+    return sendError(res, 401, 'Access denied. No token provided.');
   }
 
   const token = authHeader.split(' ')[1]; 
 
   if (!token || token === 'undefined' || token === 'null') {
-    return res.status(401).json({ message: 'Access denied. Invalid token format.' });
+    return sendError(res, 401, 'Access denied. Invalid token format.');
   }
 
   try {
@@ -23,7 +24,21 @@ export const verifyToken = (req, res, next) => {
     };
     next();
   } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(400).json({ message: 'Invalid token.' });
+    return sendError(res, 400, 'Invalid token.');
   }
+};
+
+export const authorize = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.roles) {
+      return sendError(res, 401, 'Access denied. Not authenticated.');
+    }
+
+    const isAllowed = req.user.roles.some((role) => allowedRoles.includes(role));
+    if (!isAllowed) {
+      return sendError(res, 403, 'Access denied. You do not have permission to perform this action.');
+    }
+
+    next();
+  };
 };
